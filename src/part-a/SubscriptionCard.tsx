@@ -38,8 +38,10 @@ export function SubscriptionCard() {
   const [retentionOpen, setRetentionOpen] = useState(false);
   const [retentionStep, setRetentionStep] = useState<RetentionStep>("reason");
   const [reason, setReason] = useState<RetentionReason>("tooMuch");
+  const [focusResult, setFocusResult] = useState(false);
   const skipTriggerRef = useRef<HTMLButtonElement>(null);
   const cancelTriggerRef = useRef<HTMLButtonElement>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
   const skipDialogRef = useRef<HTMLElement>(null);
   const retentionDialogRef = useRef<HTMLElement>(null);
 
@@ -60,6 +62,12 @@ export function SubscriptionCard() {
   useEffect(() => { void loadSubscription(); }, []);
   useEffect(() => { if (skipOpen) skipDialogRef.current?.querySelector<HTMLButtonElement>("button:not([disabled])")?.focus(); }, [skipOpen]);
   useEffect(() => { if (retentionOpen) retentionDialogRef.current?.querySelector<HTMLButtonElement>("button:not([disabled])")?.focus(); }, [retentionOpen, retentionStep]);
+  useEffect(() => {
+    if (focusResult) {
+      headingRef.current?.focus();
+      setFocusResult(false);
+    }
+  }, [focusResult]);
 
   const trapDialogFocus = (event: React.KeyboardEvent<HTMLElement>, onClose: () => void) => {
     if (event.key === "Escape") {
@@ -69,7 +77,11 @@ export function SubscriptionCard() {
     }
     if (event.key !== "Tab") return;
     const focusable = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), select:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'));
-    if (!focusable.length) return;
+    if (!focusable.length) {
+      event.preventDefault();
+      event.currentTarget.focus();
+      return;
+    }
     const first = focusable[0];
     const last = focusable[focusable.length - 1];
     if (event.shiftKey && document.activeElement === first) {
@@ -117,7 +129,7 @@ export function SubscriptionCard() {
         ? new Date(Date.parse(subscription.nextChargeAt) + (60 - subscription.intervalDays) * 86_400_000).toISOString()
         : null;
       setSubscription({ ...subscription, intervalDays: 60, nextChargeAt });
-      setNotice(`Delivery frequency updated to every 60 days. Your next delivery is ${shortDate(nextChargeAt!)} and your 15% savings stay the same.`);
+      setNotice(`Delivery frequency updated to every 60 days. Your next charge is ${shortDate(nextChargeAt!)} and your 15% savings stay the same.`);
     } else if (reason === "different") {
       setNotice("Your subscription is still active. You can explore other Natura Wellness products whenever you’re ready.");
     } else {
@@ -126,12 +138,14 @@ export function SubscriptionCard() {
       setNotice(`Your subscription is paused until ${shortDate(daysFromNow(pauseLength))}. No orders will be charged while it’s paused.`);
     }
     setRetentionOpen(false);
+    setFocusResult(true);
   };
 
   const cancelSubscription = () => {
     if (!subscription) return;
     setSubscription({ ...subscription, status: "cancelled", nextChargeAt: null, nextChargeTotalCents: null, pausedUntil: null, cancelledAt: new Date().toISOString() });
     setRetentionOpen(false);
+    setFocusResult(true);
     setNotice("Your subscription has been cancelled. You won’t be charged again.");
   };
 
@@ -176,7 +190,7 @@ export function SubscriptionCard() {
         <header className="subscription-card__header">
           <div>
             <p className="subscription-card__eyebrow">Natura Wellness</p>
-            <h1 id="subscription-title">Your subscription</h1>
+            <h1 ref={headingRef} id="subscription-title" tabIndex={-1}>Your subscription</h1>
           </div>
           <span className={`subscription-card__status subscription-card__status--${subscription.status}`}><StatusIcon status={subscription.status} />{statusCopy.label}</span>
         </header>
@@ -210,13 +224,13 @@ export function SubscriptionCard() {
 
       {skipOpen && <div className="subscription-card__overlay" role="presentation" onMouseDown={closeSkip}>
         <section ref={skipDialogRef} className="subscription-card__dialog" role="dialog" aria-modal="true" aria-labelledby="skip-title" tabIndex={-1} onMouseDown={(event) => event.stopPropagation()} onKeyDown={(event) => trapDialogFocus(event, closeSkip)}>
-          <button className="subscription-card__dialog-close" type="button" aria-label="Close" onClick={closeSkip} disabled={isSkipping}>×</button>
+          <button className="subscription-card__dialog-close" type="button" aria-label="Close" aria-disabled={isSkipping} onClick={closeSkip}>×</button>
           <p className="subscription-card__eyebrow">One quick check</p><h2 id="skip-title">Skip your next shipment?</h2>
           <p>Your order will move from <b>{date(subscription.nextChargeAt!)}</b> to <b>{date(new Date(Date.parse(subscription.nextChargeAt!) + subscription.intervalDays * 86_400_000).toISOString())}</b>. Your next charge will stay {money(subscription.nextChargeTotalCents!)}.</p>
           {skipError && <Notice tone="error">{skipError}</Notice>}
           <div className="subscription-card__dialog-actions">
             {skipError?.includes("Refresh") ? <button className="subscription-card__button subscription-card__button--primary" type="button" onClick={() => void refreshAfterConflict()}>Refresh subscription</button> : <button className="subscription-card__button subscription-card__button--primary" type="button" onClick={() => void confirmSkip()} disabled={isSkipping}>{isSkipping ? "Skipping shipment…" : "Yes, skip shipment"}</button>}
-            <button className="subscription-card__button subscription-card__button--tertiary" type="button" onClick={closeSkip} disabled={isSkipping}>Keep this delivery</button>
+            <button className="subscription-card__button subscription-card__button--tertiary" type="button" aria-disabled={isSkipping} onClick={closeSkip}>Keep this delivery</button>
           </div>
         </section>
       </div>}
