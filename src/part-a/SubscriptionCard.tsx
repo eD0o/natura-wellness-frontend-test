@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getSubscription, skipNextShipment } from "../api/mockApi";
 import { ApiError, type Subscription, type SubscriptionStatus } from "../api/types";
 import "./SubscriptionCard.css";
@@ -38,25 +38,54 @@ export function SubscriptionCard() {
   const [retentionOpen, setRetentionOpen] = useState(false);
   const [retentionStep, setRetentionStep] = useState<RetentionStep>("reason");
   const [reason, setReason] = useState<RetentionReason>("tooMuch");
+  const skipTriggerRef = useRef<HTMLButtonElement>(null);
+  const cancelTriggerRef = useRef<HTMLButtonElement>(null);
+  const skipDialogRef = useRef<HTMLElement>(null);
+  const retentionDialogRef = useRef<HTMLElement>(null);
 
-  const loadSubscription = async () => {
+  const loadSubscription = async (): Promise<boolean> => {
     setIsLoading(true);
     setLoadError(null);
     try {
       setSubscription(await getSubscription());
+      return true;
     } catch (error) {
       setLoadError(error instanceof ApiError ? "We couldn’t load your subscription right now." : "Something went wrong. Please try again.");
+      return false;
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => { void loadSubscription(); }, []);
+  useEffect(() => { if (skipOpen) skipDialogRef.current?.querySelector<HTMLButtonElement>("button:not([disabled])")?.focus(); }, [skipOpen]);
+  useEffect(() => { if (retentionOpen) retentionDialogRef.current?.querySelector<HTMLButtonElement>("button:not([disabled])")?.focus(); }, [retentionOpen, retentionStep]);
+
+  const trapDialogFocus = (event: React.KeyboardEvent<HTMLElement>, onClose: () => void) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      onClose();
+      return;
+    }
+    if (event.key !== "Tab") return;
+    const focusable = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), select:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'));
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
 
   const closeSkip = () => {
     if (!isSkipping) {
       setSkipOpen(false);
       setSkipError(null);
+      skipTriggerRef.current?.focus();
     }
   };
 
@@ -69,6 +98,7 @@ export function SubscriptionCard() {
       setSubscription(updated);
       setSkipOpen(false);
       setNotice(`Shipment skipped. Your next order is now ${shortDate(updated.nextChargeAt!)}.`);
+      skipTriggerRef.current?.focus();
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
         setSkipError("Your subscription changed somewhere else. Refresh it to see the latest details before trying again.");
@@ -83,8 +113,11 @@ export function SubscriptionCard() {
   const applyRetentionChoice = () => {
     if (!subscription) return;
     if (reason === "cost") {
-      setSubscription({ ...subscription, intervalDays: 60 });
-      setNotice("Delivery frequency updated to every 60 days. Your 15% savings stay the same.");
+      const nextChargeAt = subscription.nextChargeAt
+        ? new Date(Date.parse(subscription.nextChargeAt) + (60 - subscription.intervalDays) * 86_400_000).toISOString()
+        : null;
+      setSubscription({ ...subscription, intervalDays: 60, nextChargeAt });
+      setNotice(`Delivery frequency updated to every 60 days. Your next delivery is ${shortDate(nextChargeAt!)} and your 15% savings stay the same.`);
     } else if (reason === "different") {
       setNotice("Your subscription is still active. You can explore other Natura Wellness products whenever you’re ready.");
     } else {
@@ -102,6 +135,18 @@ export function SubscriptionCard() {
     setNotice("Your subscription has been cancelled. You won’t be charged again.");
   };
 
+  const refreshAfterConflict = async () => {
+    setSkipOpen(false);
+    if (await loadSubscription()) {
+      setNotice("Subscription refreshed. Review the latest delivery details before trying again.");
+    }
+  };
+
+  const closeRetention = () => {
+    setRetentionOpen(false);
+    cancelTriggerRef.current?.focus();
+  };
+
   const offer = reason === "tooMuch"
     ? { title: "Pause for 60 days instead", description: "Give yourself time to finish what you have. No orders or charges while paused.", action: "Pause for 60 days" }
     : reason === "cost"
@@ -111,7 +156,7 @@ export function SubscriptionCard() {
         : { title: "Take a short pause", description: "Pause your deliveries for 30 days. You won’t be charged while paused.", action: "Pause for 30 days" };
 
   if (isLoading) {
-    return <main className="subscription-page"><div className="subscription-card subscription-card--loading" aria-busy="true"><span className="subscription-card__skeleton subscription-card__skeleton--title" /><span className="subscription-card__skeleton" /><span className="subscription-card__skeleton subscription-card__skeleton--large" /></div></main>;
+    return <main className="subscription-page"><div className="subscription-card subscription-card--loading" aria-busy="true" aria-live="polite"><span className="subscription-card__skeleton subscription-card__skeleton--title" /><span className="subscription-card__skeleton" /><span className="subscription-card__skeleton subscription-card__skeleton--large" /><p>Loading your subscription details...</p></div></main>;
   }
 
   if (loadError || !subscription) {
@@ -149,36 +194,36 @@ export function SubscriptionCard() {
             {subscription.items.map((item) => <li key={item.sku}>
               <div className="subscription-card__product-image">{item.imageUrl ? <img src={item.imageUrl} alt="" /> : <span aria-hidden="true">N</span>}</div>
               <div><strong>{item.name}</strong><p>Quantity {item.quantity}</p></div>
-              <span>{money(item.unitPriceCents * item.quantity)}</span>
+              <span className="subscription-card__item-price"><b>{money(item.unitPriceCents * item.quantity)}</b><small>Regular price</small></span>
             </li>)}
           </ul>
-          {active && <div className="subscription-card__total"><span>Next order total</span><strong>{money(subscription.nextChargeTotalCents!)}</strong></div>}
+          {active && <div className="subscription-card__price-summary"><div><span>Regular-price subtotal</span><span>{money(subscription.items.reduce((total, item) => total + item.unitPriceCents * item.quantity, 0))}</span></div><div><span>{subscription.discountPercent}% subscription savings</span><span>−{money(subscription.items.reduce((total, item) => total + item.unitPriceCents * item.quantity, 0) - subscription.nextChargeTotalCents!)}</span></div><div className="subscription-card__total"><span>Next order total</span><strong>{money(subscription.nextChargeTotalCents!)}</strong></div></div>}
         </section>
 
         {active && <section className="subscription-card__actions" aria-labelledby="delivery-actions-heading">
           <div><h2 id="delivery-actions-heading">Need more time?</h2><p>Skipping moves your next delivery out by {subscription.intervalDays} days.</p></div>
-          <button className="subscription-card__button subscription-card__button--secondary" type="button" onClick={() => { setSkipError(null); setSkipOpen(true); }}>Skip next shipment</button>
+          <button ref={skipTriggerRef} className="subscription-card__button subscription-card__button--secondary" type="button" onClick={() => { setSkipError(null); setSkipOpen(true); }}>Skip next shipment</button>
         </section>}
 
-        {active && <button className="subscription-card__cancel-link" type="button" onClick={() => { setRetentionStep("reason"); setRetentionOpen(true); }}>Manage or cancel subscription</button>}
+        {active && <button ref={cancelTriggerRef} className="subscription-card__cancel-link" type="button" onClick={() => { setRetentionStep("reason"); setRetentionOpen(true); }}>Manage or cancel subscription</button>}
       </section>
 
       {skipOpen && <div className="subscription-card__overlay" role="presentation" onMouseDown={closeSkip}>
-        <section className="subscription-card__dialog" role="dialog" aria-modal="true" aria-labelledby="skip-title" onMouseDown={(event) => event.stopPropagation()}>
+        <section ref={skipDialogRef} className="subscription-card__dialog" role="dialog" aria-modal="true" aria-labelledby="skip-title" tabIndex={-1} onMouseDown={(event) => event.stopPropagation()} onKeyDown={(event) => trapDialogFocus(event, closeSkip)}>
           <button className="subscription-card__dialog-close" type="button" aria-label="Close" onClick={closeSkip} disabled={isSkipping}>×</button>
           <p className="subscription-card__eyebrow">One quick check</p><h2 id="skip-title">Skip your next shipment?</h2>
           <p>Your order will move from <b>{date(subscription.nextChargeAt!)}</b> to <b>{date(new Date(Date.parse(subscription.nextChargeAt!) + subscription.intervalDays * 86_400_000).toISOString())}</b>. Your next charge will stay {money(subscription.nextChargeTotalCents!)}.</p>
           {skipError && <Notice tone="error">{skipError}</Notice>}
           <div className="subscription-card__dialog-actions">
-            {skipError?.includes("Refresh") ? <button className="subscription-card__button subscription-card__button--primary" type="button" onClick={() => { setSkipOpen(false); void loadSubscription(); }}>Refresh subscription</button> : <button className="subscription-card__button subscription-card__button--primary" type="button" onClick={() => void confirmSkip()} disabled={isSkipping}>{isSkipping ? "Skipping shipment…" : "Yes, skip shipment"}</button>}
+            {skipError?.includes("Refresh") ? <button className="subscription-card__button subscription-card__button--primary" type="button" onClick={() => void refreshAfterConflict()}>Refresh subscription</button> : <button className="subscription-card__button subscription-card__button--primary" type="button" onClick={() => void confirmSkip()} disabled={isSkipping}>{isSkipping ? "Skipping shipment…" : "Yes, skip shipment"}</button>}
             <button className="subscription-card__button subscription-card__button--tertiary" type="button" onClick={closeSkip} disabled={isSkipping}>Keep this delivery</button>
           </div>
         </section>
       </div>}
 
-      {retentionOpen && <div className="subscription-card__overlay" role="presentation" onMouseDown={() => setRetentionOpen(false)}>
-        <section className="subscription-card__dialog" role="dialog" aria-modal="true" aria-labelledby="retention-title" onMouseDown={(event) => event.stopPropagation()}>
-          <button className="subscription-card__dialog-close" type="button" aria-label="Close" onClick={() => setRetentionOpen(false)}>×</button>
+      {retentionOpen && <div className="subscription-card__overlay" role="presentation" onMouseDown={closeRetention}>
+        <section ref={retentionDialogRef} className="subscription-card__dialog" role="dialog" aria-modal="true" aria-labelledby="retention-title" tabIndex={-1} onMouseDown={(event) => event.stopPropagation()} onKeyDown={(event) => trapDialogFocus(event, closeRetention)}>
+          <button className="subscription-card__dialog-close" type="button" aria-label="Close" onClick={closeRetention}>×</button>
           {retentionStep === "reason" ? <><p className="subscription-card__eyebrow">Before you go</p><h2 id="retention-title">What’s prompting this change?</h2><p>Your answer helps us make a more useful option for you.</p><fieldset className="subscription-card__reasons"><legend className="sr-only">Cancellation reason</legend>{reasons.map((item) => <label key={item.id}><input type="radio" name="reason" checked={reason === item.id} onChange={() => setReason(item.id)} />{item.label}</label>)}</fieldset><button className="subscription-card__button subscription-card__button--primary" type="button" onClick={() => setRetentionStep("offer")}>Continue</button></> : <><p className="subscription-card__eyebrow">An option for you</p><h2 id="retention-title">{offer.title}</h2><p>{offer.description}</p><div className="subscription-card__dialog-actions"><button className="subscription-card__button subscription-card__button--primary" type="button" onClick={applyRetentionChoice}>{offer.action}</button><button className="subscription-card__button subscription-card__button--tertiary" type="button" onClick={cancelSubscription}>No thanks, cancel subscription</button></div></>}
         </section>
       </div>}
