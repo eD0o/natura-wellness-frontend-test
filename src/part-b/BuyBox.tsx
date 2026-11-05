@@ -4,8 +4,8 @@ import "./BuyBox.css";
 
 type PurchaseOption = "oneTime" | "subscribe";
 
-const formatPrice = (cents: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
+const currencyFormatter = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
+const formatPrice = (cents: number) => currencyFormatter.format(cents / 100);
 
 function CheckIcon() {
   return <svg aria-hidden="true" viewBox="0 0 20 20" className="buy-box__check"><path d="m4 10 3.6 3.6L16 5.8" fill="none" stroke="currentColor" strokeWidth="2.4" /></svg>;

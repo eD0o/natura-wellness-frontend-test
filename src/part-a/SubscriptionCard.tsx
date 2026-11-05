@@ -14,9 +14,13 @@ const reasons: Array<{ id: RetentionReason; label: string }> = [
   { id: "other", label: "Other" },
 ];
 
-const money = (cents: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
-const date = (value: string) => new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric" }).format(new Date(value));
-const shortDate = (value: string) => new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date(value));
+const currencyFormatter = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
+const longDateFormatter = new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric" });
+const shortDateFormatter = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" });
+
+const money = (cents: number) => currencyFormatter.format(cents / 100);
+const date = (value: string) => longDateFormatter.format(new Date(value));
+const shortDate = (value: string) => shortDateFormatter.format(new Date(value));
 const daysFromNow = (days: number) => new Date(Date.now() + days * 86_400_000).toISOString();
 
 function StatusIcon({ status }: { status: SubscriptionStatus }) {
@@ -25,6 +29,38 @@ function StatusIcon({ status }: { status: SubscriptionStatus }) {
 
 function Notice({ children, tone = "success" }: { children: React.ReactNode; tone?: "success" | "error" }) {
   return <div className={`subscription-card__notice subscription-card__notice--${tone}`} role="status">{children}</div>;
+}
+
+function getRetentionOffer(reason: RetentionReason) {
+  if (reason === "tooMuch") {
+    return {
+      title: "Pause for 60 days instead",
+      description: "Give yourself time to finish what you have. No orders or charges while paused.",
+      action: "Pause for 60 days",
+    };
+  }
+
+  if (reason === "cost") {
+    return {
+      title: "Save with a slower delivery",
+      description: "Switch to delivery every 60 days and keep your 15% subscription savings.",
+      action: "Deliver every 60 days",
+    };
+  }
+
+  if (reason === "different") {
+    return {
+      title: "Your routine can change",
+      description: "Keep your 15% savings while you take time to find what works best for you.",
+      action: "Keep my subscription",
+    };
+  }
+
+  return {
+    title: "Take a short pause",
+    description: "Pause your deliveries for 30 days. You won’t be charged while paused.",
+    action: "Pause for 30 days",
+  };
 }
 
 export function SubscriptionCard() {
@@ -134,8 +170,9 @@ export function SubscriptionCard() {
       setNotice("Your subscription is still active. You can explore other Natura Wellness products whenever you’re ready.");
     } else {
       const pauseLength = reason === "tooMuch" ? 60 : 30;
-      setSubscription({ ...subscription, status: "paused", nextChargeAt: null, nextChargeTotalCents: null, pausedUntil: daysFromNow(pauseLength), cancelledAt: null });
-      setNotice(`Your pause ends ${shortDate(daysFromNow(pauseLength))}. No delivery or charge is scheduled yet; we'll email you before your next order is set.`);
+      const pausedUntil = daysFromNow(pauseLength);
+      setSubscription({ ...subscription, status: "paused", nextChargeAt: null, nextChargeTotalCents: null, pausedUntil, cancelledAt: null });
+      setNotice(`Your pause ends ${shortDate(pausedUntil)}. No delivery or charge is scheduled yet; we'll email you before your next order is set.`);
     }
     setRetentionOpen(false);
     setFocusResult(true);
@@ -174,13 +211,7 @@ export function SubscriptionCard() {
     };
   }, [dialogOpen]);
 
-  const offer = reason === "tooMuch"
-    ? { title: "Pause for 60 days instead", description: "Give yourself time to finish what you have. No orders or charges while paused.", action: "Pause for 60 days" }
-    : reason === "cost"
-      ? { title: "Save with a slower delivery", description: "Switch to delivery every 60 days and keep your 15% subscription savings.", action: "Deliver every 60 days" }
-      : reason === "different"
-        ? { title: "Your routine can change", description: "Keep your 15% savings while you take time to find what works best for you.", action: "Keep my subscription" }
-        : { title: "Take a short pause", description: "Pause your deliveries for 30 days. You won’t be charged while paused.", action: "Pause for 30 days" };
+  const offer = getRetentionOffer(reason);
 
   if (isLoading) {
     return <main className="subscription-page"><div className="subscription-card subscription-card--loading" aria-busy="true" aria-live="polite"><span className="subscription-card__skeleton subscription-card__skeleton--title" /><span className="subscription-card__skeleton" /><span className="subscription-card__skeleton subscription-card__skeleton--large" /><p>Loading your subscription details...</p></div></main>;
@@ -191,6 +222,11 @@ export function SubscriptionCard() {
   }
 
   const active = subscription.status === "active";
+  const regularSubtotal = subscription.items.reduce(
+    (total, item) => total + item.unitPriceCents * item.quantity,
+    0,
+  );
+  const subscriptionSavings = active ? regularSubtotal - subscription.nextChargeTotalCents! : 0;
   const statusCopy = active
     ? { label: "Active", detail: `You’re saving ${subscription.discountPercent}% on every delivery.` }
     : subscription.status === "paused"
@@ -225,7 +261,7 @@ export function SubscriptionCard() {
               <span className="subscription-card__item-price"><b>{money(item.unitPriceCents * item.quantity)}</b><small>Regular price</small></span>
             </li>)}
           </ul>
-          {active && <div className="subscription-card__price-summary"><div><span>Regular-price subtotal</span><span>{money(subscription.items.reduce((total, item) => total + item.unitPriceCents * item.quantity, 0))}</span></div><div><span>{subscription.discountPercent}% subscription savings</span><span>−{money(subscription.items.reduce((total, item) => total + item.unitPriceCents * item.quantity, 0) - subscription.nextChargeTotalCents!)}</span></div><div className="subscription-card__total"><span>Next order total</span><strong>{money(subscription.nextChargeTotalCents!)}</strong></div></div>}
+          {active && <div className="subscription-card__price-summary"><div><span>Regular-price subtotal</span><span>{money(regularSubtotal)}</span></div><div><span>{subscription.discountPercent}% subscription savings</span><span>−{money(subscriptionSavings)}</span></div><div className="subscription-card__total"><span>Next order total</span><strong>{money(subscription.nextChargeTotalCents!)}</strong></div></div>}
         </section>
 
         {active && <section className="subscription-card__actions" aria-labelledby="delivery-actions-heading">

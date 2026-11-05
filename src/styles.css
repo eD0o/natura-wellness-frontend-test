@@ -1,0 +1,26 @@
+:root {
+  --nw-canvas: #faf8f4;
+  --nw-forest: #154933;
+  --nw-ink: #1d2522;
+  --nw-focus: #a1bcae;
+  color: var(--nw-ink);
+  background: var(--nw-canvas);
+  font-family: Inter, Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+button,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
