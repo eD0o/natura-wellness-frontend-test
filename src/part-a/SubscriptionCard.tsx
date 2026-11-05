@@ -118,6 +118,197 @@ function Notice({
   );
 }
 
+type DialogKeyDown = (event: React.KeyboardEvent<HTMLElement>) => void;
+
+interface SkipDialogProps {
+  subscription: Subscription;
+  dialogRef: React.RefObject<HTMLElement | null>;
+  isSkipping: boolean;
+  error: string | null;
+  onClose: () => void;
+  onConfirm: () => void;
+  onRefresh: () => void;
+  onKeyDown: DialogKeyDown;
+}
+
+function SkipDialog({
+  subscription,
+  dialogRef,
+  isSkipping,
+  error,
+  onClose,
+  onConfirm,
+  onRefresh,
+  onKeyDown,
+}: SkipDialogProps) {
+  const skippedDate = new Date(
+    Date.parse(subscription.nextChargeAt!) + subscription.intervalDays * 86_400_000,
+  ).toISOString();
+
+  return (
+    <div className="subscription-card__overlay" role="presentation" onMouseDown={onClose}>
+      <section
+        ref={dialogRef}
+        className="subscription-card__dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="skip-title"
+        tabIndex={-1}
+        onMouseDown={(event) => event.stopPropagation()}
+        onKeyDown={onKeyDown}
+      >
+        <button
+          className="subscription-card__dialog-close"
+          type="button"
+          aria-label="Close"
+          aria-disabled={isSkipping}
+          onClick={onClose}
+        >
+          ×
+        </button>
+        <p className="subscription-card__eyebrow">One quick check</p>
+        <h2 id="skip-title">Skip your next shipment?</h2>
+        <p>
+          Your order will move from <b>{date(subscription.nextChargeAt!)}</b> to{" "}
+          <b>{date(skippedDate)}</b>. Your next charge will stay {money(subscription.nextChargeTotalCents!)}.
+        </p>
+
+        {error && <Notice tone="error">{error}</Notice>}
+
+        <div className="subscription-card__dialog-actions">
+          {error?.includes("Refresh") ? (
+            <button
+              className="subscription-card__button subscription-card__button--primary"
+              type="button"
+              onClick={onRefresh}
+            >
+              Refresh subscription
+            </button>
+          ) : (
+            <button
+              className="subscription-card__button subscription-card__button--primary"
+              type="button"
+              onClick={onConfirm}
+              disabled={isSkipping}
+            >
+              {isSkipping ? "Skipping shipment…" : "Yes, skip shipment"}
+            </button>
+          )}
+          <button
+            className="subscription-card__button subscription-card__button--tertiary"
+            type="button"
+            aria-disabled={isSkipping}
+            onClick={onClose}
+          >
+            Keep this delivery
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+interface RetentionDialogProps {
+  dialogRef: React.RefObject<HTMLElement | null>;
+  reason: RetentionReason;
+  step: RetentionStep;
+  offer: ReturnType<typeof getRetentionOffer>;
+  onClose: () => void;
+  onReasonChange: (reason: RetentionReason) => void;
+  onContinue: () => void;
+  onAcceptOffer: () => void;
+  onCancel: () => void;
+  onKeyDown: DialogKeyDown;
+}
+
+function RetentionDialog({
+  dialogRef,
+  reason,
+  step,
+  offer,
+  onClose,
+  onReasonChange,
+  onContinue,
+  onAcceptOffer,
+  onCancel,
+  onKeyDown,
+}: RetentionDialogProps) {
+  return (
+    <div className="subscription-card__overlay" role="presentation" onMouseDown={onClose}>
+      <section
+        ref={dialogRef}
+        className="subscription-card__dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="retention-title"
+        tabIndex={-1}
+        onMouseDown={(event) => event.stopPropagation()}
+        onKeyDown={onKeyDown}
+      >
+        <button
+          className="subscription-card__dialog-close"
+          type="button"
+          aria-label="Close"
+          onClick={onClose}
+        >
+          ×
+        </button>
+
+        {step === "reason" ? (
+          <>
+            <p className="subscription-card__eyebrow">Before you go</p>
+            <h2 id="retention-title">What’s prompting this change?</h2>
+            <p>Your answer helps us make a more useful option for you.</p>
+            <fieldset className="subscription-card__reasons">
+              <legend className="sr-only">Cancellation reason</legend>
+              {reasons.map((item) => (
+                <label key={item.id}>
+                  <input
+                    type="radio"
+                    name="reason"
+                    checked={reason === item.id}
+                    onChange={() => onReasonChange(item.id)}
+                  />
+                  {item.label}
+                </label>
+              ))}
+            </fieldset>
+            <button
+              className="subscription-card__button subscription-card__button--primary"
+              type="button"
+              onClick={onContinue}
+            >
+              Continue
+            </button>
+          </>
+        ) : (
+          <>
+            <p className="subscription-card__eyebrow">An option for you</p>
+            <h2 id="retention-title">{offer.title}</h2>
+            <p>{offer.description}</p>
+            <div className="subscription-card__dialog-actions">
+              <button
+                className="subscription-card__button subscription-card__button--primary"
+                type="button"
+                onClick={onAcceptOffer}
+              >
+                {offer.action}
+              </button>
+              <button
+                className="subscription-card__button subscription-card__button--tertiary"
+                type="button"
+                onClick={onCancel}
+              >
+                No thanks, cancel subscription
+              </button>
+            </div>
+          </>
+        )}
+      </section>
+    </div>
+  );
+}
+
 export function SubscriptionCard() {
   const [subscriptionState, setSubscriptionState] = useState<SubscriptionState>({
     status: "loading",
@@ -525,147 +716,31 @@ export function SubscriptionCard() {
       </main>
 
       {activeModal === "skip" && (
-        <div className="subscription-card__overlay" role="presentation" onMouseDown={closeSkip}>
-          <section
-            ref={skipDialogRef}
-            className="subscription-card__dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="skip-title"
-            tabIndex={-1}
-            onMouseDown={(event) => event.stopPropagation()}
-            onKeyDown={(event) => trapDialogFocus(event, closeSkip)}
-          >
-            <button
-              className="subscription-card__dialog-close"
-              type="button"
-              aria-label="Close"
-              aria-disabled={isSkipping}
-              onClick={closeSkip}
-            >
-              ×
-            </button>
-            <p className="subscription-card__eyebrow">One quick check</p>
-            <h2 id="skip-title">Skip your next shipment?</h2>
-            <p>
-              Your order will move from <b>{date(subscription.nextChargeAt!)}</b> to{" "}
-              <b>
-                {date(
-                  new Date(
-                    Date.parse(subscription.nextChargeAt!) + subscription.intervalDays * 86_400_000,
-                  ).toISOString(),
-                )}
-              </b>
-              . Your next charge will stay {money(subscription.nextChargeTotalCents!)}.
-            </p>
-
-            {skipError && <Notice tone="error">{skipError}</Notice>}
-
-            <div className="subscription-card__dialog-actions">
-              {skipError?.includes("Refresh") ? (
-                <button
-                  className="subscription-card__button subscription-card__button--primary"
-                  type="button"
-                  onClick={() => void refreshAfterConflict()}
-                >
-                  Refresh subscription
-                </button>
-              ) : (
-                <button
-                  className="subscription-card__button subscription-card__button--primary"
-                  type="button"
-                  onClick={() => void confirmSkip()}
-                  disabled={isSkipping}
-                >
-                  {isSkipping ? "Skipping shipment…" : "Yes, skip shipment"}
-                </button>
-              )}
-              <button
-                className="subscription-card__button subscription-card__button--tertiary"
-                type="button"
-                aria-disabled={isSkipping}
-                onClick={closeSkip}
-              >
-                Keep this delivery
-              </button>
-            </div>
-          </section>
-        </div>
+        <SkipDialog
+          subscription={subscription}
+          dialogRef={skipDialogRef}
+          isSkipping={isSkipping}
+          error={skipError}
+          onClose={closeSkip}
+          onConfirm={() => void confirmSkip()}
+          onRefresh={() => void refreshAfterConflict()}
+          onKeyDown={(event) => trapDialogFocus(event, closeSkip)}
+        />
       )}
 
       {activeModal === "retention" && (
-        <div className="subscription-card__overlay" role="presentation" onMouseDown={closeRetention}>
-          <section
-            ref={retentionDialogRef}
-            className="subscription-card__dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="retention-title"
-            tabIndex={-1}
-            onMouseDown={(event) => event.stopPropagation()}
-            onKeyDown={(event) => trapDialogFocus(event, closeRetention)}
-          >
-            <button
-              className="subscription-card__dialog-close"
-              type="button"
-              aria-label="Close"
-              onClick={closeRetention}
-            >
-              ×
-            </button>
-
-            {retentionStep === "reason" ? (
-              <>
-                <p className="subscription-card__eyebrow">Before you go</p>
-                <h2 id="retention-title">What’s prompting this change?</h2>
-                <p>Your answer helps us make a more useful option for you.</p>
-                <fieldset className="subscription-card__reasons">
-                  <legend className="sr-only">Cancellation reason</legend>
-                  {reasons.map((item) => (
-                    <label key={item.id}>
-                      <input
-                        type="radio"
-                        name="reason"
-                        checked={reason === item.id}
-                        onChange={() => setReason(item.id)}
-                      />
-                      {item.label}
-                    </label>
-                  ))}
-                </fieldset>
-                <button
-                  className="subscription-card__button subscription-card__button--primary"
-                  type="button"
-                  onClick={() => setRetentionStep("offer")}
-                >
-                  Continue
-                </button>
-              </>
-            ) : (
-              <>
-                <p className="subscription-card__eyebrow">An option for you</p>
-                <h2 id="retention-title">{offer.title}</h2>
-                <p>{offer.description}</p>
-                <div className="subscription-card__dialog-actions">
-                  <button
-                    className="subscription-card__button subscription-card__button--primary"
-                    type="button"
-                    onClick={applyRetentionChoice}
-                  >
-                    {offer.action}
-                  </button>
-                  <button
-                    className="subscription-card__button subscription-card__button--tertiary"
-                    type="button"
-                    onClick={cancelSubscription}
-                  >
-                    No thanks, cancel subscription
-                  </button>
-                </div>
-              </>
-            )}
-          </section>
-        </div>
+        <RetentionDialog
+          dialogRef={retentionDialogRef}
+          reason={reason}
+          step={retentionStep}
+          offer={offer}
+          onClose={closeRetention}
+          onReasonChange={setReason}
+          onContinue={() => setRetentionStep("offer")}
+          onAcceptOffer={applyRetentionChoice}
+          onCancel={cancelSubscription}
+          onKeyDown={(event) => trapDialogFocus(event, closeRetention)}
+        />
       )}
     </>
   );
