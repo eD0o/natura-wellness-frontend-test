@@ -161,6 +161,19 @@ export function SubscriptionCard() {
     cancelTriggerRef.current?.focus();
   };
 
+  const dialogOpen = skipOpen || retentionOpen;
+
+  useEffect(() => {
+    const navigation = document.querySelector("nav");
+    if (!dialogOpen || !navigation) return;
+    navigation.setAttribute("inert", "");
+    navigation.setAttribute("aria-hidden", "true");
+    return () => {
+      navigation.removeAttribute("inert");
+      navigation.removeAttribute("aria-hidden");
+    };
+  }, [dialogOpen]);
+
   const offer = reason === "tooMuch"
     ? { title: "Pause for 60 days instead", description: "Give yourself time to finish what you have. No orders or charges while paused.", action: "Pause for 60 days" }
     : reason === "cost"
@@ -185,7 +198,8 @@ export function SubscriptionCard() {
       : { label: "Cancelled", detail: `Cancelled ${date(subscription.cancelledAt!)}. No future orders are scheduled.` };
 
   return (
-    <main className="subscription-page">
+    <>
+    <main className="subscription-page" aria-hidden={dialogOpen || undefined} inert={dialogOpen}>
       <section className="subscription-card" aria-labelledby="subscription-title">
         <header className="subscription-card__header">
           <div>
@@ -221,6 +235,7 @@ export function SubscriptionCard() {
 
         {active && <button ref={cancelTriggerRef} className="subscription-card__cancel-link" type="button" onClick={() => { setRetentionStep("reason"); setRetentionOpen(true); }}>Manage or cancel subscription</button>}
       </section>
+    </main>
 
       {skipOpen && <div className="subscription-card__overlay" role="presentation" onMouseDown={closeSkip}>
         <section ref={skipDialogRef} className="subscription-card__dialog" role="dialog" aria-modal="true" aria-labelledby="skip-title" tabIndex={-1} onMouseDown={(event) => event.stopPropagation()} onKeyDown={(event) => trapDialogFocus(event, closeSkip)}>
@@ -241,6 +256,6 @@ export function SubscriptionCard() {
           {retentionStep === "reason" ? <><p className="subscription-card__eyebrow">Before you go</p><h2 id="retention-title">What’s prompting this change?</h2><p>Your answer helps us make a more useful option for you.</p><fieldset className="subscription-card__reasons"><legend className="sr-only">Cancellation reason</legend>{reasons.map((item) => <label key={item.id}><input type="radio" name="reason" checked={reason === item.id} onChange={() => setReason(item.id)} />{item.label}</label>)}</fieldset><button className="subscription-card__button subscription-card__button--primary" type="button" onClick={() => setRetentionStep("offer")}>Continue</button></> : <><p className="subscription-card__eyebrow">An option for you</p><h2 id="retention-title">{offer.title}</h2><p>{offer.description}</p><div className="subscription-card__dialog-actions"><button className="subscription-card__button subscription-card__button--primary" type="button" onClick={applyRetentionChoice}>{offer.action}</button><button className="subscription-card__button subscription-card__button--tertiary" type="button" onClick={cancelSubscription}>No thanks, cancel subscription</button></div></>}
         </section>
       </div>}
-    </main>
+    </>
   );
 }

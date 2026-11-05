@@ -22,7 +22,9 @@ export function BuyBox() {
   const unitPrice = copy[purchaseOption].priceCents;
   const total = unitPrice * quantity;
   const isSubscription = purchaseOption === "subscribe";
-  const renewalText = `Your subscription renews every ${frequency} at ${formatPrice(copy.subscribe.priceCents)} until you cancel. Skip or cancel anytime from your account.`;
+  const renewalText = frequency === copy.subscribe.frequencyOptions[0]
+    ? copy.finePrint
+    : `Your subscription renews every ${frequency} at ${formatPrice(copy.subscribe.priceCents)} until you cancel. Skip or cancel anytime from your account.`;
 
   return (
     <main className="buy-box">
@@ -33,23 +35,23 @@ export function BuyBox() {
       <section className="buy-box__details" aria-labelledby="product-title">
         <p className="buy-box__eyebrow">{copy.eyebrow}</p>
         <div className="buy-box__rating" aria-label={`${copy.rating} out of 5 stars from ${copy.reviewCount}`}>
-          <span className="buy-box__stars" aria-hidden="true">★★★★★</span><strong>{copy.rating}</strong><a href="#reviews">{copy.reviewCount}</a>
+          <span className="buy-box__stars" aria-hidden="true">★★★★★</span><strong>{copy.rating}</strong><span className="buy-box__review-count">{copy.reviewCount}</span>
         </div>
         <h1 id="product-title">{copy.title}</h1>
         <p className="buy-box__subtitle">{copy.subtitle}</p>
         <div className="buy-box__divider" />
 
         <div className="buy-box__options" role="radiogroup" aria-label="Purchase option">
-          <button className={`buy-box__option buy-box__one-time ${!isSubscription ? "is-selected" : ""}`} type="button" role="radio" aria-checked={!isSubscription} onClick={() => setPurchaseOption("oneTime")}>
+          <label className={`buy-box__option buy-box__one-time ${!isSubscription ? "is-selected" : ""}`}>
+            <input className="buy-box__plan-input" type="radio" name="purchase-option" checked={!isSubscription} onChange={() => setPurchaseOption("oneTime")} />
             <span className="buy-box__option-title"><span className="buy-box__radio" />{copy.oneTime.label}</span><strong>{formatPrice(copy.oneTime.priceCents)}</strong>
-          </button>
-          <div className={`buy-box__option buy-box__subscription ${isSubscription ? "is-selected" : ""}`} role="radio" aria-checked={isSubscription} tabIndex={0} onClick={() => setPurchaseOption("subscribe")} onKeyDown={(event) => {
-            if (event.key === " " || event.key === "Enter") { event.preventDefault(); setPurchaseOption("subscribe"); }
-          }}>
-            <div className="buy-box__option-top">
+          </label>
+          <div className={`buy-box__option buy-box__subscription ${isSubscription ? "is-selected" : ""}`} onClick={() => setPurchaseOption("subscribe")}>
+            <input id="subscription-option" className="buy-box__plan-input" type="radio" name="purchase-option" checked={isSubscription} onChange={() => setPurchaseOption("subscribe")} />
+            <label className="buy-box__option-top" htmlFor="subscription-option">
               <span className="buy-box__option-title"><span className="buy-box__radio" />{copy.subscribe.label}<span className="buy-box__badge">{copy.subscribe.badge}</span></span>
               <span className="buy-box__price-stack"><strong>{formatPrice(copy.subscribe.priceCents)}</strong><s>{formatPrice(copy.subscribe.comparePriceCents)}</s></span>
-            </div>
+            </label>
             {isSubscription && <>
               <label className="buy-box__frequency">
                 <span>{copy.subscribe.frequencyLabel}</span>

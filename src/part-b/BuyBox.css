@@ -12,14 +12,15 @@ button { cursor: pointer; }
 .buy-box__rating { display: flex; align-items: center; gap: 9px; font-size: 14px; line-height: 1; }
 .buy-box__rating strong { font-size: 14px; }
 .buy-box__stars { color: var(--gold); letter-spacing: 1px; font-size: 18px; line-height: 1; }
-.buy-box__rating a { color: var(--muted); text-underline-offset: 3px; }
+.buy-box__review-count { color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
 .buy-box h1 { margin: 19px 0 24px; color: var(--forest); font-family: Fraunces, Georgia, serif; font-size: 46px; font-weight: 500; letter-spacing: -.035em; line-height: .98; }
 .buy-box__subtitle { margin: 0; color: #4d5a54; font-size: 17px; line-height: 1.45; }
 .buy-box__divider { height: 1px; margin: 29px 0 24px; background: var(--line); }
 .buy-box__options { display: grid; gap: 12px; }
-.buy-box__option { border: 1px solid var(--line); border-radius: 14px; background: #fff; color: var(--ink); }
+.buy-box__option { position: relative; border: 1px solid var(--line); border-radius: 14px; background: #fff; color: var(--ink); cursor: pointer; }
 .buy-box__one-time { display: flex; align-items: center; justify-content: space-between; min-height: 60px; padding: 0 20px; text-align: left; }
-.buy-box__one-time:focus-visible, .buy-box__subscription:focus-visible, .buy-box__cart-button:focus-visible, .buy-box__quantity button:focus-visible, .buy-box__select-wrap:focus-within { outline: 3px solid #a1bcae; outline-offset: 2px; }
+.buy-box__option:has(.buy-box__plan-input:focus-visible), .buy-box__cart-button:focus-visible, .buy-box__quantity button:focus-visible, .buy-box__select-wrap:focus-within { outline: 3px solid #a1bcae; outline-offset: 2px; }
+.buy-box__plan-input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); clip-path: inset(50%); white-space: nowrap; }
 .buy-box__option-title { display: inline-flex; align-items: center; gap: 12px; font-size: 16px; font-weight: 600; }
 .buy-box__option strong { font-size: 18px; line-height: 1; }
 .buy-box__radio { width: 20px; height: 20px; flex: 0 0 20px; border: 1.5px solid #9aa69f; border-radius: 50%; }
@@ -52,5 +53,5 @@ button { cursor: pointer; }
 .buy-box__fine-print { margin: 18px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
 
 @media (max-width: 1140px) { .buy-box { grid-template-columns: minmax(360px, 1fr) minmax(420px, 468px); gap: 40px; margin-inline: 32px; } }
-@media (max-width: 800px) { .buy-box { grid-template-columns: 1fr; max-width: 560px; gap: 32px; margin: 28px auto 48px; padding: 0 20px; } .buy-box__image-panel { max-width: 540px; width: 100%; margin: auto; } }
+@media (max-width: 900px) { .buy-box { grid-template-columns: 1fr; max-width: 560px; gap: 32px; margin: 28px auto 48px; padding: 0 20px; } .buy-box__image-panel { max-width: 540px; width: 100%; margin: auto; } }
 @media (max-width: 430px) { .buy-box { margin-top: 20px; padding: 0 16px; } .buy-box h1 { font-size: 40px; } .buy-box__option-title { font-size: 15px; } .buy-box__subscription.is-selected { min-height: 190px; } .buy-box__frequency { margin-left: 0; } .buy-box__perks { margin-left: 0; font-size: 14px; } .buy-box__purchase-row { grid-template-columns: 112px 1fr; } .buy-box__trust { display: grid; gap: 10px; } }
