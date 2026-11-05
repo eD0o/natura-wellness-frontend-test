@@ -135,7 +135,7 @@ export function SubscriptionCard() {
     } else {
       const pauseLength = reason === "tooMuch" ? 60 : 30;
       setSubscription({ ...subscription, status: "paused", nextChargeAt: null, nextChargeTotalCents: null, pausedUntil: daysFromNow(pauseLength), cancelledAt: null });
-      setNotice(`Your subscription is paused until ${shortDate(daysFromNow(pauseLength))}. No orders will be charged while it’s paused.`);
+      setNotice(`Your pause ends ${shortDate(daysFromNow(pauseLength))}. No delivery or charge is scheduled yet; we'll email you before your next order is set.`);
     }
     setRetentionOpen(false);
     setFocusResult(true);
@@ -181,7 +181,7 @@ export function SubscriptionCard() {
   const statusCopy = active
     ? { label: "Active", detail: `You’re saving ${subscription.discountPercent}% on every delivery.` }
     : subscription.status === "paused"
-      ? { label: "Paused", detail: `Your deliveries resume ${date(subscription.pausedUntil!)}.` }
+      ? { label: "Paused", detail: `Your pause ends ${date(subscription.pausedUntil!)}.` }
       : { label: "Cancelled", detail: `Cancelled ${date(subscription.cancelledAt!)}. No future orders are scheduled.` };
 
   return (
@@ -199,7 +199,7 @@ export function SubscriptionCard() {
 
         <section className="subscription-card__next" aria-labelledby="next-order-heading">
           <p className="subscription-card__section-label" id="next-order-heading">{active ? "Next delivery" : "Subscription status"}</p>
-          {active ? <><strong>{date(subscription.nextChargeAt!)}</strong><p>You’ll be charged <b>{money(subscription.nextChargeTotalCents!)}</b> on this date.</p></> : <><strong>{statusCopy.detail}</strong><p>{subscription.status === "paused" ? "We’ll email you before your first renewed order." : "Come back anytime when you’re ready to restart."}</p></>}
+          {active ? <><strong>{date(subscription.nextChargeAt!)}</strong><p>You’ll be charged <b>{money(subscription.nextChargeTotalCents!)}</b> on this date.</p></> : <><strong>{statusCopy.detail}</strong><p>{subscription.status === "paused" ? "No delivery or charge is scheduled yet. We’ll email you before your next order is set." : "Come back anytime when you’re ready to restart."}</p></>}
         </section>
 
         <section className="subscription-card__items" aria-labelledby="items-heading">
