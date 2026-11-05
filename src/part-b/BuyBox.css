@@ -1,0 +1,56 @@
+:root { font-family: Inter, Arial, sans-serif; color: #1d2522; background: #faf8f4; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+button, select { font: inherit; }
+button { cursor: pointer; }
+
+.buy-box { --forest: #154933; --ink: #1d2522; --muted: #697a70; --line: #e1dbd0; --soft-sage: #f3f6f2; --gold: #d99c2c; --badge: #faeac6; display: grid; grid-template-columns: 540px minmax(0, 468px); gap: 64px; max-width: 1072px; margin: 56px auto 80px; color: var(--ink); }
+.buy-box__image-panel { aspect-ratio: 1; overflow: hidden; border: 1px solid var(--line); border-radius: 20px; background: #fff; }
+.buy-box__image-panel img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.buy-box__details { min-width: 0; }
+.buy-box__eyebrow { margin: 0 0 16px; color: var(--muted); font-size: 13px; font-weight: 600; letter-spacing: .17em; line-height: 1; text-transform: uppercase; }
+.buy-box__rating { display: flex; align-items: center; gap: 9px; font-size: 14px; line-height: 1; }
+.buy-box__rating strong { font-size: 14px; }
+.buy-box__stars { color: var(--gold); letter-spacing: 1px; font-size: 18px; line-height: 1; }
+.buy-box__rating a { color: var(--muted); text-underline-offset: 3px; }
+.buy-box h1 { margin: 19px 0 24px; color: var(--forest); font-family: Fraunces, Georgia, serif; font-size: 46px; font-weight: 500; letter-spacing: -.035em; line-height: .98; }
+.buy-box__subtitle { margin: 0; color: #4d5a54; font-size: 17px; line-height: 1.45; }
+.buy-box__divider { height: 1px; margin: 29px 0 24px; background: var(--line); }
+.buy-box__options { display: grid; gap: 12px; }
+.buy-box__option { border: 1px solid var(--line); border-radius: 14px; background: #fff; color: var(--ink); }
+.buy-box__one-time { display: flex; align-items: center; justify-content: space-between; min-height: 60px; padding: 0 20px; text-align: left; }
+.buy-box__one-time:focus-visible, .buy-box__subscription:focus-visible, .buy-box__cart-button:focus-visible, .buy-box__quantity button:focus-visible, .buy-box__select-wrap:focus-within { outline: 3px solid #a1bcae; outline-offset: 2px; }
+.buy-box__option-title { display: inline-flex; align-items: center; gap: 12px; font-size: 16px; font-weight: 600; }
+.buy-box__option strong { font-size: 18px; line-height: 1; }
+.buy-box__radio { width: 20px; height: 20px; flex: 0 0 20px; border: 1.5px solid #9aa69f; border-radius: 50%; }
+.is-selected .buy-box__radio { border: 2px solid var(--forest); box-shadow: inset 0 0 0 4px var(--soft-sage), inset 0 0 0 9px var(--forest); }
+.buy-box__subscription { padding: 20px; }
+.buy-box__subscription.is-selected { min-height: 180px; border: 2px solid var(--forest); background: var(--soft-sage); padding: 19px; }
+.buy-box__option-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.buy-box__option-top .buy-box__option-title { flex-wrap: wrap; }
+.buy-box__badge { margin-left: 2px; padding: 5px 10px 4px; border-radius: 99px; background: var(--badge); color: #805d16; font-size: 11px; font-weight: 700; letter-spacing: .09em; line-height: 1; text-transform: uppercase; white-space: nowrap; }
+.buy-box__price-stack { display: grid; justify-items: end; gap: 5px; white-space: nowrap; }
+.buy-box__price-stack s { color: #8b9690; font-size: 13px; line-height: 1; }
+.buy-box__frequency { display: flex; align-items: center; gap: 10px; margin: 20px 0 16px 32px; color: #4d5a54; font-size: 15px; }
+.buy-box__select-wrap { position: relative; display: inline-flex; color: var(--ink); }
+.buy-box__select-wrap select { width: 116px; height: 34px; appearance: none; border: 1px solid #cbd3cd; border-radius: 9px; background: #fff; padding: 0 29px 0 12px; color: var(--ink); font-size: 15px; font-weight: 500; }
+.buy-box__select-wrap svg { position: absolute; right: 11px; top: 10px; width: 13px; pointer-events: none; }
+.buy-box__perks { display: grid; gap: 9px; margin: 0 0 0 32px; padding: 0; list-style: none; font-size: 15px; }
+.buy-box__perks li { display: flex; align-items: center; gap: 10px; }
+.buy-box__check { width: 15px; height: 15px; color: var(--forest); }
+.buy-box__purchase-row { display: grid; grid-template-columns: 128px 1fr; gap: 12px; margin-top: 24px; }
+.buy-box__quantity { display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: center; height: 56px; border: 1px solid #ced6d0; border-radius: 13px; background: #fff; }
+.buy-box__quantity button { height: 100%; border: 0; background: transparent; color: #56655e; font-size: 24px; line-height: 1; }
+.buy-box__quantity button:disabled { cursor: default; color: #56655e; }
+.buy-box__quantity output { text-align: center; font-size: 16px; font-weight: 600; }
+.buy-box__cart-button { display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 56px; border: 0; border-radius: 13px; background: var(--forest); color: #fff; font-size: 17px; font-weight: 600; }
+.buy-box__cart-button:hover { background: #0e3c2a; }
+.buy-box__cart-button span { opacity: .7; }
+.buy-box__trust { display: flex; flex-wrap: wrap; gap: 18px 24px; margin: 21px 0 0; padding: 0; color: #4d5a54; list-style: none; font-size: 14px; }
+.buy-box__trust li { display: flex; align-items: center; gap: 7px; white-space: nowrap; }
+.buy-box__trust-icon { width: 17px; height: 17px; color: var(--forest); }
+.buy-box__fine-print { margin: 18px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+
+@media (max-width: 1140px) { .buy-box { grid-template-columns: minmax(360px, 1fr) minmax(420px, 468px); gap: 40px; margin-inline: 32px; } }
+@media (max-width: 800px) { .buy-box { grid-template-columns: 1fr; max-width: 560px; gap: 32px; margin: 28px auto 48px; padding: 0 20px; } .buy-box__image-panel { max-width: 540px; width: 100%; margin: auto; } }
+@media (max-width: 430px) { .buy-box { margin-top: 20px; padding: 0 16px; } .buy-box h1 { font-size: 40px; } .buy-box__option-title { font-size: 15px; } .buy-box__subscription.is-selected { min-height: 190px; } .buy-box__frequency { margin-left: 0; } .buy-box__perks { margin-left: 0; font-size: 14px; } .buy-box__purchase-row { grid-template-columns: 112px 1fr; } .buy-box__trust { display: grid; gap: 10px; } }
